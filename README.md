@@ -5,16 +5,18 @@ A full-stack Todo app built with React, Express, and Postgres. Demonstrates sess
 ## User Stories
 
 **Auth**
+
 - A user can register for an account with a username and password
 - A user can log in to an existing account
 - A user can log out
 - A returning user who has an active session is automatically logged in when they revisit the app
 
 **Todos**
-- A logged-in user can see all of their todos
-- A logged-in user can create a new todo by entering a title
-- A logged-in user can mark a todo as complete or incomplete
-- A logged-in user can delete a todo
+
+- A logged-in user can see all of their workouts
+- A logged-in user can create a new workout by entering a title and exercises
+- A logged-in user can track completed workouts
+- A logged-in user can delete a workout
 
 ## Schema
 
@@ -25,15 +27,31 @@ user_id       SERIAL PRIMARY KEY
 username      TEXT UNIQUE NOT NULL
 password_hash TEXT NOT NULL
 
-todos
+workouts
 ─────────────────────────────
-todo_id     SERIAL PRIMARY KEY
+workout_id     SERIAL PRIMARY KEY
 title       TEXT NOT NULL
-is_complete BOOLEAN DEFAULT FALSE
+duration    INTEGER
 user_id     INTEGER REFERENCES users(user_id) ON DELETE CASCADE
+
+exercises
+______________________________
+exercise_id SERIAL PRIMARY KEY
+title       TEXT NOT NULL
+description TEXT
+
+
+workout_exercises
+______________________________
+workout_exercise_id SERIAL PRIMARY KEY
+workout_id INTEGER REFERENCES workouts(workout_id) ON DELETE CASCADE
+exercise_id INTEGER REFERENCES exercises(exercise_id) ON DELETE CASCADE
+UNIQUE (workout_id, exercise_id)
 ```
 
-A user has many todos. Deleting a user cascades to delete all of their todos.
+A user has many workouts. Deleting a user cascades to delete all of their workouts.
+
+Workouts can have many exercises, and an exercise can belong to many workouts
 
 ## API Contract
 
@@ -46,14 +64,27 @@ A user has many todos. Deleting a user cascades to delete all of their todos.
 | DELETE | `/api/auth/logout`   | —                        | `{ message }`                     |
 | GET    | `/api/auth/me`       | —                        | `{ user_id, username }` or `null` |
 
-### Todo endpoints (all require authentication)
+### Workout endpoints
 
-| Method | Endpoint              | Request Body      | Response                                     |
-| ------ | --------------------- | ----------------- | -------------------------------------------- |
-| GET    | `/api/todos`          | —                 | `[{ todo_id, title, is_complete, user_id }]` |
-| POST   | `/api/todos`          | `{ title }`       | `{ todo_id, title, is_complete, user_id }`   |
-| PATCH  | `/api/todos/:todo_id` | `{ is_complete }` | `{ todo_id, title, is_complete, user_id }`   |
-| DELETE | `/api/todos/:todo_id` | —                 | `{ todo_id, title, is_complete, user_id }`   |
+| Method | Endpoint                                           | Request Body          | Response                                     |
+| ------ | -------------------------------------------------- | --------------------- | -------------------------------------------- |
+| GET    | `/api/workouts`                                    | —                     | `[{ workout_id, title, duration, user_id }]` |
+| GET    | `/api/user/:user_id/workouts`                      | —                     | `[{ workout_id, title, duration, user_id }]` |
+| GET    | `/api/workouts/:workout_id/exercises`              | —                     | `[{ exercise_id, title, description }]`      |
+| POST   | `/api/workouts/:workout_id/exercise`               | `{ exercise_id }`     | `{ workout_id, duration, title, user_id }`   |
+| POST   | `/api/workouts`                                    | `{ title }`           | `{ workout_id, title, duration, user_id }`   |
+| PATCH  | `/api/workouts/:workout_id`                        | `{ title, duration }` | `{ workout_id, title, duration, user_id }`   |
+| DELETE | `/api/workouts/:workout_id`                        | —                     | `{ workout_id, title, duration, user_id }`   |
+| DELETE | `/api/workouts/:workout_id/exercises/:exercise_id` | —                     | `{ workout_id, title, duration, user_id }`   |
+
+### Exercise endpoints
+
+| Method | Endpoint                      | Request Body             | Response                              |
+| ------ | ----------------------------- | ------------------------ | ------------------------------------- |
+| GET    | `/api/exercises`              | —                        | `{ exercise_id, title, description }` |
+| POST   | `/api/exercises`              | `{ title, description }` | `{ exercise_id, title, description }` |
+| PATCH  | `/api/exercises/:exercise_id` | `{ title, description }` | `{ exercise_id, title, description }` |
+| DELETE | `/api/exercises/:exercise_id` | —                        | `{ exercise_id, title, description }` |
 
 ## Setup
 
@@ -62,7 +93,7 @@ A user has many todos. Deleting a user cascades to delete all of their todos.
 Create a local Postgres database:
 
 ```sh
-createdb todos_casestudy
+createdb workouts_db
 ```
 
 ### 2. Server
