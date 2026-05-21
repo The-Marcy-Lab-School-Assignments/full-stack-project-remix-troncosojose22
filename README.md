@@ -13,18 +13,18 @@ A full-stack Workout Tracker built with React, Express, and Postgres. Track your
 
 **Workouts**
 
-- A logged-in user can see all of their workouts
-- A logged-in user can create a new workout by entering a title
-- A logged-in user can edit a workout's title and duration
-- A logged-in user can mark a workout as complete
-- A logged-in user can delete a workout
-- A logged-in user can view their completed workout history
+- A user can see all of their workouts
+- A user can create a new workout by entering a title
+- A user can edit a workout's title and duration
+- A user can mark a workout as complete
+- A user can delete a workout
+- A user can view their completed workout history
 
 **Exercises**
 
-- A logged-in user can add an existing exercise to a workout
-- A logged-in user can create a new exercise and add it to a workout
-- A logged-in user can remove an exercise from a workout
+- A user can add an existing exercise to a workout
+- A user can create a new exercise and add it to a workout
+- A user can remove an exercise from a workout
 
 ## Schema
 
