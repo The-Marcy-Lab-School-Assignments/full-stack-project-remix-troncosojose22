@@ -1,13 +1,15 @@
+import './App.css'
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { getMe, login, register, logout } from './adapters/auth-adapters';
-import AuthPage from './components/AuthPage';
-import TodoPage from './components/TodoPage';
+import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
+import WorkoutsPage from './components/WorkoutsPage';
+import WorkoutDetailPage from './components/WorkoutDetailPage';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
 
-  // On every page load, check the server for an active session cookie.
-  // React state doesn't survive a refresh; session cookies do.
   useEffect(() => {
     const checkForSession = async () => {
       const { data: user } = await getMe();
@@ -16,9 +18,6 @@ function App() {
     checkForSession();
   }, []);
 
-  // Handlers that manage updating the current user. 
-  // Defined in App to ensure that child components only                       
-  // update the current user in a controlled manner.  
   const handleLogin = async (username, password) => {
     const { data: user, error } = await login(username, password);
     if (error) return error;
@@ -38,11 +37,29 @@ function App() {
 
   return (
     <main>
-      <h1>Todo App</h1>
-      {currentUser
-        ? <TodoPage currentUser={currentUser} handleLogout={handleLogout} />
-        : <AuthPage handleLogin={handleLogin} handleRegister={handleRegister} />
-      }
+      <h1>Workout Tracker</h1>
+      <Routes>
+        <Route
+          path="/"
+          element={currentUser ? <Navigate to="/workouts" /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/login"
+          element={currentUser ? <Navigate to="/workouts" /> : <LoginPage handleLogin={handleLogin} />}
+        />
+        <Route
+          path="/register"
+          element={currentUser ? <Navigate to="/workouts" /> : <RegisterPage handleRegister={handleRegister} />}
+        />
+        <Route
+          path="/workouts"
+          element={currentUser ? <WorkoutsPage currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/workouts/:workout_id"
+          element={currentUser ? <WorkoutDetailPage currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />}
+        />
+      </Routes>
     </main>
   );
 }

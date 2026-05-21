@@ -8,6 +8,8 @@ const checkAuthentication = require('./middleware/checkAuthentication');
 const authControllers = require('./controllers/authControllers');
 const workoutControllers = require('./controllers/workoutControllers');
 const exerciseControllers = require('./controllers/exerciseControllers');
+const workoutExerciseControllers = require('./controllers/workoutExerciseControllers');
+const completedWorkoutControllers = require('./controllers/completedWorkoutControllers');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -34,27 +36,28 @@ app.post('/api/auth/login', authControllers.login);
 app.get('/api/auth/me', authControllers.getMe);
 app.delete('/api/auth/logout', authControllers.logout);
 
-// ====================================
 // Workout routes
-// ====================================
+app.get('/api/workouts', checkAuthentication, workoutControllers.listWorkouts);
+app.get('/api/user/:user_id/workouts', checkAuthentication, workoutControllers.listByUser);
+app.post('/api/workouts', checkAuthentication, workoutControllers.createWorkout);
+app.patch('/api/workouts/:workout_id', checkAuthentication, workoutControllers.updateWorkout);
+app.delete('/api/workouts/:workout_id', checkAuthentication, workoutControllers.deleteWorkout);
 
-app.get('/api/workouts', checkAuthentication, workoutControllers.listWorkouts); // All workouts
-app.get('/api/workouts/:workout_id/exercises', checkAuthentication, workoutControllers.listWorkouts); // Exercises by workout
-app.get('/api/user/:user_id/workouts', checkAuthentication, workoutControllers.listByUser); // Workouts by user
-app.post('/api/workouts', checkAuthentication, workoutControllers.createWorkout); // New workout
-app.post('/api/workouts', checkAuthentication, workoutControllers.createWorkout); // Add an exercise to a workout
-app.patch('/api/workouts/:workout_id', checkAuthentication, workoutControllers.updateWorkout); // Update workout
-app.delete('/api/workouts/:workout_id', checkAuthentication, workoutControllers.deleteWorkout); // Delete a workout
-app.delete('/api/workouts/:workout_id/exercises/:exercise_id', checkAuthentication, workoutControllers.deleteWorkout); // Delete an exercise from a workout
+// Workout-exercise routes
+app.get('/api/workouts/:workout_id/exercises', checkAuthentication, exerciseControllers.listByWorkout);
+app.post('/api/workouts/:workout_id/exercises', checkAuthentication, workoutExerciseControllers.addExercise);
+app.delete('/api/workouts/:workout_id/exercises/:exercise_id', checkAuthentication, workoutExerciseControllers.removeExercise);
 
-// ====================================
 // Exercise routes
-// ====================================
+app.get('/api/exercises', checkAuthentication, exerciseControllers.listExercises);
+app.post('/api/exercises', checkAuthentication, exerciseControllers.createExercise);
+app.patch('/api/exercises/:exercise_id', checkAuthentication, exerciseControllers.updateExercise);
+app.delete('/api/exercises/:exercise_id', checkAuthentication, exerciseControllers.deleteExercise);
 
-app.get('/api/exercises', checkAuthentication, exerciseControllers.listExercises); // All exercises
-app.post('/api/exercises', checkAuthentication, exerciseControllers.createExercise); // Create exercise
-app.patch('/api/exercises/:exercise_id', checkAuthentication, exerciseControllers.updateExercise); // Update exercise
-app.delete('/api/exercises/:exercise_id', checkAuthentication, exerciseControllers.deleteExercise); // Delete exercise
+// Completed workout routes
+app.post('/api/completed', checkAuthentication, completedWorkoutControllers.logCompleted);
+app.get('/api/user/:user_id/completed', checkAuthentication, completedWorkoutControllers.listCompleted);
+
 // ====================================
 // Global Error Handler
 // ====================================

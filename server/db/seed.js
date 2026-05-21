@@ -6,6 +6,7 @@ const SALT_ROUNDS = 8;
 const seed = async () => {
   // Drop tables in reverse dependency order (join table first, then tables with FKs)
   await pool.query('DROP TABLE IF EXISTS workout_exercises');
+  await pool.query('DROP TABLE IF EXISTS completed_workouts');
   await pool.query('DROP TABLE IF EXISTS exercises');
   await pool.query('DROP TABLE IF EXISTS workouts');
   await pool.query('DROP TABLE IF EXISTS users');
@@ -30,7 +31,7 @@ const seed = async () => {
   await pool.query(`
     CREATE TABLE exercises (
       exercise_id SERIAL PRIMARY KEY,
-      title       TEXT NOT NULL,
+      title       TEXT NOT NULL UNIQUE,
       description TEXT
     )
   `);
@@ -43,6 +44,15 @@ const seed = async () => {
       UNIQUE (workout_id, exercise_id)
     )
   `);
+
+  await pool.query(`
+  CREATE TABLE completed_workouts (
+    completed_id SERIAL PRIMARY KEY,
+    workout_id   INTEGER REFERENCES workouts(workout_id) ON DELETE CASCADE,
+    user_id      INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+    completed_at TIMESTAMP DEFAULT NOW()
+  )
+`);
 
   // Hash passwords in parallel — bcrypt is slow by design (CPU-bound hashing)
   const [aliceHash, bobHash] = await Promise.all([

@@ -1,6 +1,6 @@
-# Todo App — Full-Stack Case Study
+# Workout Tracker
 
-A full-stack Todo app built with React, Express, and Postgres. Demonstrates session-based authentication, session rehydration, auth-dependent data fetching, and conditional rendering — the same patterns students use in their full-stack projects.
+A full-stack Workout Tracker built with React, Express, and Postgres. Track your workouts, log completed sessions, and build a personal exercise library, all in one place.
 
 ## User Stories
 
@@ -11,12 +11,20 @@ A full-stack Todo app built with React, Express, and Postgres. Demonstrates sess
 - A user can log out
 - A returning user who has an active session is automatically logged in when they revisit the app
 
-**Todos**
+**Workouts**
 
 - A logged-in user can see all of their workouts
-- A logged-in user can create a new workout by entering a title and exercises
-- A logged-in user can track completed workouts
+- A logged-in user can create a new workout by entering a title
+- A logged-in user can edit a workout's title and duration
+- A logged-in user can mark a workout as complete
 - A logged-in user can delete a workout
+- A logged-in user can view their completed workout history
+
+**Exercises**
+
+- A logged-in user can add an existing exercise to a workout
+- A logged-in user can create a new exercise and add it to a workout
+- A logged-in user can remove an exercise from a workout
 
 ## Schema
 
@@ -29,29 +37,35 @@ password_hash TEXT NOT NULL
 
 workouts
 ─────────────────────────────
-workout_id     SERIAL PRIMARY KEY
-title       TEXT NOT NULL
-duration    INTEGER
-user_id     INTEGER REFERENCES users(user_id) ON DELETE CASCADE
+workout_id   SERIAL PRIMARY KEY
+title        TEXT NOT NULL
+duration     INTEGER
+user_id      INTEGER REFERENCES users(user_id) ON DELETE CASCADE
 
 exercises
-______________________________
-exercise_id SERIAL PRIMARY KEY
-title       TEXT NOT NULL
-description TEXT
-
+─────────────────────────────
+exercise_id  SERIAL PRIMARY KEY
+title        TEXT NOT NULL UNIQUE
+description  TEXT
 
 workout_exercises
-______________________________
+─────────────────────────────
 workout_exercise_id SERIAL PRIMARY KEY
-workout_id INTEGER REFERENCES workouts(workout_id) ON DELETE CASCADE
-exercise_id INTEGER REFERENCES exercises(exercise_id) ON DELETE CASCADE
+workout_id   INTEGER REFERENCES workouts(workout_id) ON DELETE CASCADE
+exercise_id  INTEGER REFERENCES exercises(exercise_id) ON DELETE CASCADE
 UNIQUE (workout_id, exercise_id)
+
+completed_workouts
+─────────────────────────────
+completed_id  SERIAL PRIMARY KEY
+workout_id    INTEGER REFERENCES workouts(workout_id) ON DELETE CASCADE
+user_id       INTEGER REFERENCES users(user_id) ON DELETE CASCADE
+completed_at  TIMESTAMP DEFAULT NOW()
 ```
 
 A user has many workouts. Deleting a user cascades to delete all of their workouts.
 
-Workouts can have many exercises, and an exercise can belong to many workouts
+Workouts can have many exercises, and an exercise can belong to many workouts.
 
 ## API Contract
 
@@ -71,20 +85,27 @@ Workouts can have many exercises, and an exercise can belong to many workouts
 | GET    | `/api/workouts`                                    | —                     | `[{ workout_id, title, duration, user_id }]` |
 | GET    | `/api/user/:user_id/workouts`                      | —                     | `[{ workout_id, title, duration, user_id }]` |
 | GET    | `/api/workouts/:workout_id/exercises`              | —                     | `[{ exercise_id, title, description }]`      |
-| POST   | `/api/workouts/:workout_id/exercise`               | `{ exercise_id }`     | `{ workout_id, duration, title, user_id }`   |
 | POST   | `/api/workouts`                                    | `{ title }`           | `{ workout_id, title, duration, user_id }`   |
+| POST   | `/api/workouts/:workout_id/exercises`              | `{ exercise_id }`     | `{ workout_id, duration, title, user_id }`   |
 | PATCH  | `/api/workouts/:workout_id`                        | `{ title, duration }` | `{ workout_id, title, duration, user_id }`   |
 | DELETE | `/api/workouts/:workout_id`                        | —                     | `{ workout_id, title, duration, user_id }`   |
 | DELETE | `/api/workouts/:workout_id/exercises/:exercise_id` | —                     | `{ workout_id, title, duration, user_id }`   |
 
 ### Exercise endpoints
 
-| Method | Endpoint                      | Request Body             | Response                              |
-| ------ | ----------------------------- | ------------------------ | ------------------------------------- |
-| GET    | `/api/exercises`              | —                        | `{ exercise_id, title, description }` |
-| POST   | `/api/exercises`              | `{ title, description }` | `{ exercise_id, title, description }` |
-| PATCH  | `/api/exercises/:exercise_id` | `{ title, description }` | `{ exercise_id, title, description }` |
-| DELETE | `/api/exercises/:exercise_id` | —                        | `{ exercise_id, title, description }` |
+| Method | Endpoint                      | Request Body             | Response                                |
+| ------ | ----------------------------- | ------------------------ | --------------------------------------- |
+| GET    | `/api/exercises`              | —                        | `[{ exercise_id, title, description }]` |
+| POST   | `/api/exercises`              | `{ title, description }` | `{ exercise_id, title, description }`   |
+| PATCH  | `/api/exercises/:exercise_id` | `{ title, description }` | `{ exercise_id, title, description }`   |
+| DELETE | `/api/exercises/:exercise_id` | —                        | `{ exercise_id, title, description }`   |
+
+### Completed workout endpoints
+
+| Method | Endpoint                       | Request Body     | Response                                                        |
+| ------ | ------------------------------ | ---------------- | --------------------------------------------------------------- |
+| POST   | `/api/completed`               | `{ workout_id }` | `{ completed_id, workout_id, user_id, completed_at }`           |
+| GET    | `/api/user/:user_id/completed` | —                | `[{ completed_id, completed_at, workout_id, title, duration }]` |
 
 ## Setup
 
@@ -142,32 +163,50 @@ After running `npm run db:seed`, these accounts are available:
 ## Application Structure
 
 ```
-swe-casestudy-7-todo-app/
-├── frontend/               # React app (Vite)
+workout-app/
+├── frontend/
 │   ├── src/
-│   │   ├── App.jsx         # Root component: currentUser state, session rehydration, auth handlers
+│   │   ├── App.jsx
 │   │   ├── adapters/
-│   │   │   ├── auth-adapters.js  # Fetch adapters for /api/auth/* endpoints
-│   │   │   └── todo-adapters.js  # Fetch adapters for /api/todos/* endpoints
+│   │   │   ├── handleFetch.js
+│   │   │   ├── auth-adapters.js
+│   │   │   ├── workout-adapters.js
+│   │   │   ├── exercise-adapters.js
+│   │   │   ├── workout-exercise-adapters.js
+│   │   │   └── completed-workout-adapters.js
 │   │   └── components/
-│   │       ├── AuthPage.jsx    # Login + Register forms (shown when logged out)
-│   │       ├── TodoPage.jsx    # Main app container (shown when logged in)
-│   │       ├── AddTodoForm.jsx # Form to create a new todo
-│   │       ├── TodoList.jsx    # Renders a list of TodoItems
-│   │       └── TodoItem.jsx    # Single todo: checkbox, title, delete button
-│   └── vite.config.js      # Proxies /api requests to Express in development
-└── server/                 # Express + Postgres API
-    ├── index.js            # App entry point, route definitions
-    ├── controllers/
-    │   ├── authControllers.js  # register, login, logout, getMe
-    │   └── todoControllers.js  # list, create, update, delete todos
+│   │       ├── LoginPage.jsx
+│   │       ├── RegisterPage.jsx
+│   │       ├── WorkoutsPage.jsx
+│   │       ├── WorkoutDetailPage.jsx
+│   │       ├── AddWorkoutForm.jsx
+│   │       ├── WorkoutList.jsx
+│   │       ├── WorkoutItem.jsx
+│   │       ├── EditWorkoutForm.jsx
+│   │       ├── AddExerciseForm.jsx
+│   │       ├── ExerciseList.jsx
+│   │       ├── ExerciseItem.jsx
+│   │       ├── CompletedWorkoutList.jsx
+│   │       └── CompletedWorkoutItem.jsx
+│   └── vite.config.js
+└── server/
+    ├── index.js
+    ├── controllers
+    │   ├── authControllers.js
+    │   ├── workoutControllers.js
+    │   ├── exerciseControllers.js
+    │   ├── workoutExerciseControllers.js
+    │   └── completedWorkoutControllers.js
     ├── models/
-    │   ├── userModel.js    # SQL queries for the users table
-    │   └── todoModel.js    # SQL queries for the todos table
+    │   ├── userModel.js
+    │   ├── workoutModel.js
+    │   ├── exerciseModel.js
+    │   ├── workoutExerciseModel.js
+    │   └── completedWorkoutModel.js
     ├── middleware/
-    │   ├── checkAuthentication.js  # Blocks unauthenticated requests
-    │   └── logRoutes.js            # Logs each incoming request
+    │   ├── checkAuthentication.js
+    │   └── logRoutes.js
     └── db/
-        ├── pool.js         # Postgres connection pool
-        └── seed.js         # Creates tables and inserts sample data
+        ├── pool.js
+        └── seed.js
 ```

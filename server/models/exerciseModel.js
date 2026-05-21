@@ -1,5 +1,10 @@
 const pool = require('../db/pool');
 
+module.exports.getAll = async () => {
+  const { rows } = await pool.query('SELECT * FROM exercises');
+  return rows;
+};
+
 module.exports.findByWorkout = async (workout_id) => {
   const { rows } = await pool.query(
     `SELECT e.exercise_id, e.title, e.description
